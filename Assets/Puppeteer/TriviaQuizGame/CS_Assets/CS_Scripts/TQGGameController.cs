@@ -312,18 +312,30 @@ namespace TriviaQuizGame
                 { "Conventional", "常规型(C)" }
             };
 
+            // Map personality types to course recommendations
+            var courseRecommendations = new Dictionary<string, string>
+            {
+                { "Realistic", "工业设计\n机械工程\n土木工程\n电气工程\n计算机科学" },
+                { "Investigative", "数学与应用数学/经济学\n物理学\n化学\n生物学\n计算机科学" },
+                { "Artistic", "平面或3D设计\n服装设计\n表演学\n传媒学\n电影制作或摄影学" },
+                { "Social", "教育学\n心理学\n临床医学或护理学\n公共政策学\n国际关系学" },
+                { "Enterprising", "工商管理学\n金融学\n市场学\n国际贸易学\n法学" },
+                { "Conventional", "会计学\n经济学\n公共政策学\n工商管理学\n法学" }
+            };
+
             // Create array of field-score pairs
             var fieldNames = Enum.GetNames(typeof(PersonalityField));
-            var scorePairs = new System.Collections.Generic.List<System.Tuple<string, float>>();
+            var scorePairs = new System.Collections.Generic.List<System.Tuple<string, string, float>>();
 
             for (int i = 0; i < riasecScores.Length && i < fieldNames.Length; i++)
             {
                 string chineseName = chineseFieldNames.ContainsKey(fieldNames[i]) ? chineseFieldNames[fieldNames[i]] : fieldNames[i];
-                scorePairs.Add(new System.Tuple<string, float>(chineseName, riasecScores[i]));
+                string courses = courseRecommendations.ContainsKey(fieldNames[i]) ? courseRecommendations[fieldNames[i]] : "";
+                scorePairs.Add(new System.Tuple<string, string, float>(chineseName, courses, riasecScores[i]));
             }
 
             // Sort by score descending
-            scorePairs.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+            scorePairs.Sort((a, b) => b.Item3.CompareTo(a.Item3));
 
             // Display top 3
             for (int i = 0; i < 3 && i < scorePairs.Count; i++)
@@ -333,6 +345,7 @@ namespace TriviaQuizGame
                 {
                     var textField = likertScoreObj.Find("TextField");
                     var textScore = likertScoreObj.Find("TextScore");
+                    var textCourse = likertScoreObj.Find("TextCourse");
 
                     if (textField != null && textField.GetComponent<Text>() != null)
                     {
@@ -341,7 +354,12 @@ namespace TriviaQuizGame
 
                     if (textScore != null && textScore.GetComponent<Text>() != null)
                     {
-                        textScore.GetComponent<Text>().text = scorePairs[i].Item2.ToString();
+                        textScore.GetComponent<Text>().text = scorePairs[i].Item3.ToString();
+                    }
+
+                    if (textCourse != null && textCourse.GetComponent<Text>() != null)
+                    {
+                        textCourse.GetComponent<Text>().text = scorePairs[i].Item2;
                     }
                 }
             }
