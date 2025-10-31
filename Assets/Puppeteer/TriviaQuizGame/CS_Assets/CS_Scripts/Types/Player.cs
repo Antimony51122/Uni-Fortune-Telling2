@@ -33,5 +33,13 @@ namespace TriviaQuizGame.Types
 
 		[Tooltip("The color of the player name")]
 		public Color color;
+
+		[Tooltip("RIASEC cumulative scores ordered as R, I, A, S, E, C")]
+		public float[] hollandScores = new float[6];
+
+		public void ResetHollandScores()
+		{
+			Array.Clear(hollandScores, 0, hollandScores.Length);
+		}
 	}
 }

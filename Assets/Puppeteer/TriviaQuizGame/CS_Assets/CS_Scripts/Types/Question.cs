@@ -6,6 +6,16 @@ using TriviaQuizGame.Types;
 
 namespace TriviaQuizGame.Types
 {
+	public enum PersonalityField
+	{
+		Realistic,
+		Investigative,
+		Artistic,
+		Social,
+		Enterprising,
+		Conventional
+	}
+
 	[Serializable]
 	public class Question
 	{
@@ -50,5 +60,14 @@ namespace TriviaQuizGame.Types
 		
 		[Tooltip("How many seconds to answer this question we have. This should logically be tied to the difficulty of the question, same as the bonus. But the questions are sorted only based on the bonus, and not the time")]
 		public float time;
+
+        [Tooltip("Holland field that accumulates this question's points")]
+        public PersonalityField field;
+
+        [Tooltip("Labels shown for the standardized five-point Likert scale")]
+        public string[] likertLabels = new[] { "Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree" };
+
+        [Tooltip("Points awarded for each Likert choice, aligned with likertLabels")]
+        public int[] likertScores = new[] { 0, 1, 2, 3, 4 };
 	}
 }
