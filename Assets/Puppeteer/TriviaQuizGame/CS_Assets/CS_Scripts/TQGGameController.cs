@@ -246,6 +246,14 @@ namespace TriviaQuizGame
         internal DateTime startTime;
         internal TimeSpan playTime;
 
+        // Change for fortune-telling game
+        [Header("<Gameplay Toggles>")]
+        [Tooltip("Disable to remove all countdown logic, timer UI, and time penalties.")]
+        public bool useTimer = true;
+
+        [Tooltip("Disable to remove lives, mistakes, and health UI.")]
+        public bool useLives = true;
+
         /// <summary>
         /// Start is only called once in the lifetime of the behaviour.
         /// The difference between Awake and Start is that Start is only called if the script instance is enabled.
@@ -290,6 +298,15 @@ namespace TriviaQuizGame
             // If we have an animated timer, assign it for quicker access
             if (GameObject.Find("TimerAnimated") && GameObject.Find("TimerAnimated").GetComponent<Animation>()) timerAnimated = GameObject.Find("TimerAnimated").GetComponent<Animation>();
 
+            // Disable the timer if the useTimer option is false
+            if (!useTimer)
+            {
+                timerRunning = false;
+                globalTime = 0;
+                if (timerIcon) timerIcon.SetActive(false);
+                if (timerAnimated) timerAnimated.gameObject.SetActive(false);
+            }
+
             // If we have a global time value, it takes over the local times of the quiz.
             if (globalTime > 0) timeLeft = globalTime;
 
@@ -304,6 +321,15 @@ namespace TriviaQuizGame
 
             // Update the current list of players based on numberOfPlayers
             SetNumberOfPlayers(numberOfPlayers);
+
+            if (!useLives)
+            {
+                foreach (var player in players)
+                {
+                    player.lives = float.PositiveInfinity;
+                    if (player.livesBar) player.livesBar.gameObject.SetActive(false);
+                }
+            }
 
             //Assign the sound source for easier access
             if (GameObject.FindGameObjectWithTag(soundSourceTag)) soundSource = GameObject.FindGameObjectWithTag(soundSourceTag);
@@ -554,11 +580,23 @@ namespace TriviaQuizGame
                 }
 
                 // Update the lives bar
-                if (players[currentPlayer].livesBar)
+                // if (players[currentPlayer].livesBar)
+                // {
+                //     // If the lives bar has a text in it, update it. Otherwise, resize the lives bar based on the number of lives left
+                //     if (players[currentPlayer].livesBar.transform.Find("Text")) players[currentPlayer].livesBar.transform.Find("Text").GetComponent<Text>().text = players[currentPlayer].lives.ToString();
+                //     else players[currentPlayer].livesBar.rectTransform.sizeDelta = Vector2.Lerp(players[currentPlayer].livesBar.rectTransform.sizeDelta, new Vector2(players[currentPlayer].lives * livesBarWidth, players[currentPlayer].livesBar.rectTransform.sizeDelta.y), Time.deltaTime * 8);
+                // }
+
+                if (useLives && players[currentPlayer].livesBar)
                 {
-                    // If the lives bar has a text in it, update it. Otherwise, resize the lives bar based on the number of lives left
-                    if (players[currentPlayer].livesBar.transform.Find("Text")) players[currentPlayer].livesBar.transform.Find("Text").GetComponent<Text>().text = players[currentPlayer].lives.ToString();
-                    else players[currentPlayer].livesBar.rectTransform.sizeDelta = Vector2.Lerp(players[currentPlayer].livesBar.rectTransform.sizeDelta, new Vector2(players[currentPlayer].lives * livesBarWidth, players[currentPlayer].livesBar.rectTransform.sizeDelta.y), Time.deltaTime * 8);
+                    if (players[currentPlayer].livesBar.transform.Find("Text"))
+                        players[currentPlayer].livesBar.transform.Find("Text").GetComponent<Text>().text = players[currentPlayer].lives.ToString();
+                    else
+                        players[currentPlayer].livesBar.rectTransform.sizeDelta =
+                            Vector2.Lerp(
+                                players[currentPlayer].livesBar.rectTransform.sizeDelta,
+                                new Vector2(players[currentPlayer].lives * livesBarWidth, players[currentPlayer].livesBar.rectTransform.sizeDelta.y),
+                                Time.deltaTime * 8);
                 }
             }
 
@@ -593,6 +631,15 @@ namespace TriviaQuizGame
                 {
                     // Count down the time
                     timeLeft -= Time.deltaTime;
+                }
+
+                if (useTimer && timeLeft > 0 && timerRunning)
+                {
+                    timeLeft -= Time.deltaTime;
+                }
+                else if (!useTimer)
+                {
+                    timeLeft = Mathf.Infinity;
                 }
 
                 // Update the timer
@@ -776,7 +823,10 @@ namespace TriviaQuizGame
                         PlayerPrefs.SetInt(questions[currentQuestion].question, 1);
 
                         // Set the time for this question, unless we have a global timer, in which case ignore the local time of the question
-                        if (globalTime <= 0) timeLeft = questions[currentQuestion].time;
+                        // if (globalTime <= 0) timeLeft = questions[currentQuestion].time;
+                        if (useTimer && globalTime <= 0) timeLeft = questions[currentQuestion].time;
+                        if (useTimer) timerRunning = true;
+                        else timeLeft = Mathf.Infinity;
 
                         // Start the timer
                         timerRunning = true;
@@ -1078,7 +1128,12 @@ namespace TriviaQuizGame
                         players[currentPlayer].lives--;
 
                         // Update the lives we have left
-                        Updatelives();
+                        // Updatelives();
+                        if (useLives)
+                        {
+                            players[currentPlayer].lives--;
+                            Updatelives();
+                        }
 
                         // Add to the stat wrong answer
                         wrongAnswers++;
@@ -1523,6 +1578,8 @@ namespace TriviaQuizGame
         /// </summary>
         void UpdateTime()
         {
+            if (!useTimer) return;
+
             // Update the time only if we have a timer object assigned
             if (timerIcon || timerAnimated)
             {
@@ -1856,6 +1913,9 @@ namespace TriviaQuizGame
         /// </summary>
         public void Updatelives()
         {
+            // Update the lives only if we are using lives
+            if (!useLives) return;
+
             // Update lives only if we have a lives bar assigned
             if (players[currentPlayer].livesBar)
             {
