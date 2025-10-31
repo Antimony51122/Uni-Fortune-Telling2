@@ -105,8 +105,9 @@ namespace TriviaQuizGame
 		/// </summary>
 		void ExecuteLoadLevel()
 		{
-			#if UNITY_5_3 || UNITY_5_3_OR_NEWER
+#if UNITY_5_3 || UNITY_5_3_OR_NEWER
 			SceneManager.LoadScene(levelName);
+			Debug.Log("Loading scene: " + levelName);
 			#else
 			Application.LoadLevel(levelName);
 			#endif

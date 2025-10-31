@@ -64,10 +64,21 @@ namespace TriviaQuizGame.Types
         [Tooltip("Holland field that accumulates this question's points")]
         public PersonalityField field;
 
-        [Tooltip("Labels shown for the standardized five-point Likert scale")]
-        public string[] likertLabels = new[] { "Strongly disagree", "Disagree", "Neutral", "Agree", "Strongly agree" };
+        [NonSerialized]
+        public int lastSelectedLikertScore = -1;
 
-        [Tooltip("Points awarded for each Likert choice, aligned with likertLabels")]
-        public int[] likertScores = new[] { 0, 1, 2, 3, 4 };
+        public void RecordLikertScore(int score)
+        {
+            lastSelectedLikertScore = score;
+        }
+
+        static Question Create(PersonalityField field, string prompt)
+        {
+            return new Question
+            {
+                question = prompt,
+                field = field
+            };
+        }
 	}
 }

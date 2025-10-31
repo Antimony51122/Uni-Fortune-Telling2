@@ -23,7 +23,9 @@ namespace TriviaQuizGame.Types
         [Tooltip("The address of a sound that accompanies the answer. You can leave this empty if you don't want a sound")]
         public string soundURL;
 
-        [Tooltip("This answer is correct")]
+		[Tooltip("This answer is correct")]
 		public bool isCorrect = false;
+
+		public int likertScore = 0;
 	}
 }

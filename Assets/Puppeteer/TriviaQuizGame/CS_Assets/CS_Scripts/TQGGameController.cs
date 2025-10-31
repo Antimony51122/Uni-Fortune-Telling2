@@ -254,6 +254,99 @@ namespace TriviaQuizGame
         [Tooltip("Disable to remove lives, mistakes, and health UI.")]
         public bool useLives = true;
 
+        // Holland test tracking
+        private float[] riasecScores = new float[6]; // R, I, A, S, E, C
+
+        private void ResetHollandScores()
+        {
+            for (int i = 0; i < riasecScores.Length; i++)
+            {
+                riasecScores[i] = 0f;
+            }
+        }
+
+        private void TrackHollandScore(Question question, int answerIndex)
+        {
+            if (question == null || question.answers == null || answerIndex < 0 || answerIndex >= question.answers.Length)
+                return;
+
+            int likertScore = question.answers[answerIndex].likertScore;
+            question.RecordLikertScore(likertScore);
+
+            int bucket = (int)question.field;
+            if (bucket >= 0 && bucket < riasecScores.Length)
+            {
+                riasecScores[bucket] += likertScore;
+            }
+        }
+
+        private void PrintHollandScores(string context)
+        {
+            var fieldNames = Enum.GetNames(typeof(PersonalityField));
+            StringBuilder builder = new StringBuilder();
+
+            builder.Append(context).Append(" - Holland RIASEC Scores:\n");
+
+            for (int i = 0; i < riasecScores.Length && i < fieldNames.Length; i++)
+            {
+                builder.Append(fieldNames[i]).Append(" (").Append(fieldNames[i][0]).Append("): ")
+                       .Append(riasecScores[i]).Append("\n");
+            }
+
+            Debug.Log(builder.ToString());
+        }
+
+        private void DisplayTop3HollandScores()
+        {
+            if (victoryCanvas == null || riasecScores == null)
+                return;
+
+            // Map English field names to Chinese
+            var chineseFieldNames = new Dictionary<string, string>
+            {
+                { "Realistic", "现实型(R)" },
+                { "Investigative", "研究型(I)" },
+                { "Artistic", "艺术型(A)" },
+                { "Social", "社会型(S)" },
+                { "Enterprising", "企业型(E)" },
+                { "Conventional", "常规型(C)" }
+            };
+
+            // Create array of field-score pairs
+            var fieldNames = Enum.GetNames(typeof(PersonalityField));
+            var scorePairs = new System.Collections.Generic.List<System.Tuple<string, float>>();
+
+            for (int i = 0; i < riasecScores.Length && i < fieldNames.Length; i++)
+            {
+                string chineseName = chineseFieldNames.ContainsKey(fieldNames[i]) ? chineseFieldNames[fieldNames[i]] : fieldNames[i];
+                scorePairs.Add(new System.Tuple<string, float>(chineseName, riasecScores[i]));
+            }
+
+            // Sort by score descending
+            scorePairs.Sort((a, b) => b.Item2.CompareTo(a.Item2));
+
+            // Display top 3
+            for (int i = 0; i < 3 && i < scorePairs.Count; i++)
+            {
+                var likertScoreObj = victoryCanvas.Find("LikertScoreText" + (i + 1));
+                if (likertScoreObj != null)
+                {
+                    var textField = likertScoreObj.Find("TextField");
+                    var textScore = likertScoreObj.Find("TextScore");
+
+                    if (textField != null && textField.GetComponent<Text>() != null)
+                    {
+                        textField.GetComponent<Text>().text = scorePairs[i].Item1;
+                    }
+
+                    if (textScore != null && textScore.GetComponent<Text>() != null)
+                    {
+                        textScore.GetComponent<Text>().text = scorePairs[i].Item2.ToString();
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Start is only called once in the lifetime of the behaviour.
         /// The difference between Awake and Start is that Start is only called if the script instance is enabled.
@@ -1001,7 +1094,7 @@ namespace TriviaQuizGame
                             // Animate the bonus object
                             bonusObject.GetComponent<Animation>().Play();
 
-                            // Reset the bonus animation
+                            // Reset the speed of the animation
                             bonusObject.GetComponent<Animation>()[bonusObject.GetComponent<Animation>().clip.name].speed = -1;
 
                             // Display the bonus text
@@ -1056,6 +1149,12 @@ namespace TriviaQuizGame
         {
             // Get the index of this answer object
             int answerIndex = answerSource.GetSiblingIndex();
+
+            // Track Holland score before processing
+            if (askingQuestion && currentQuestion >= 0 && currentQuestion < questions.Length)
+            {
+                TrackHollandScore(questions[currentQuestion], answerIndex);
+            }
 
             // We can only choose an answer if a question is being asked now
             if (askingQuestion == true)
@@ -1712,6 +1811,8 @@ namespace TriviaQuizGame
             // Calculate the quiz duration
             playTime = DateTime.Now - startTime;
 
+            PrintHollandScores("GameOver");
+
             yield return new WaitForSeconds(delay);
 
             //Show the game over screen
@@ -1749,13 +1850,14 @@ namespace TriviaQuizGame
         /// </summary>
         IEnumerator Victory(float delay)
         {
-            // If this quiz has no questions at all, just return to the main menu
-            if (questions.Length <= 0) yield break;
+            // If this quiz has no questions at all, just return;
 
             isGameOver = true;
 
             // Calculate the quiz duration
             playTime = DateTime.Now - startTime;
+
+            PrintHollandScores("Victory");
 
             // Record the state of the category as completed
             if (currentCategory != null)
@@ -1771,6 +1873,9 @@ namespace TriviaQuizGame
             {
                 //Show the victory screen
                 victoryCanvas.gameObject.SetActive(true);
+
+                // Display top 3 Holland scores
+                DisplayTop3HollandScores();
 
                 // If we have a TextScore and TextHighScore objects, then we are using the single player victory canvas
                 if (victoryCanvas.Find("ScoreTexts/TextScore") && victoryCanvas.Find("ScoreTexts/TextHighScore"))
@@ -2329,9 +2434,6 @@ namespace TriviaQuizGame
                 // The followup text and the end of the followup element
                 xmlString += ">" + questions[index].followup + "</Followup>" + "\n";
 
-                // The followup text that appears after answering this question
-                //xmlString += @"    <Followup>" + questions[index].followup + "</Followup>" + "\n";
-
                 // The bonus given for this question
                 xmlString += @"    <Bonus>" + questions[index].bonus.ToString() + "</Bonus>" + "\n";
 
@@ -2527,7 +2629,6 @@ namespace TriviaQuizGame
 
                 // Enable the button from the question, so that we can click it to open a larger image
                 if (questionObject.GetComponent<Button>()) questionObject.GetComponent<Button>().enabled = true;
-
             }
 
             // Start the timer again
